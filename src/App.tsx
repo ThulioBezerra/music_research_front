@@ -1,72 +1,40 @@
-import { useState } from "react";
-import { Step0_Consent } from "./components/steps/step0";
-import { Step1_UserInfo } from "./components/steps/step1";
-import { Step2_MediaUsage } from "./components/steps/step2";
-import { Step3_LikertGeneral } from "./components/steps/step3";
-import { Step4_MusicPlayer } from "./components/steps/step4";
-import { Step5_ThankYou } from "./components/steps/step5";
+import { useState } from "react"
+import { Step0_Consent } from "./components/steps/step0"
+import { Step1_UserInfo } from "./components/steps/step1"
+import { Step2_MediaUsage } from "./components/steps/step2"
+import { Step3_LikertGeneral } from "./components/steps/step3"
+import { Step4_MusicPlayer } from "./components/steps/step4"
+import { Step5_ThankYou } from "./components/steps/step5"
+import { useSession } from "./hooks/useSession"
 
-const songsToTest = [
-  {
-    id: 1,
-    spotifyId: "4iZ4cOhNma2mf4d2s4uYI1",
-    name: "Música Viral 1 (Ex: Envolver)",
-  },
-  {
-    id: 2,
-    spotifyId: "1Iq8oo9XkmmvCQiGOfORsE",
-    name: "Música Viral 2 (Ex: Flowers)",
-  },
-  {
-    id: 3,
-    spotifyId: "0SiywuOBRc1dNUR8S1y0mH",
-    name: "Música Viral 3 (Ex: As It Was)",
-  },
-];
+type SubmissionStatus = "idle" | "uploading" | "success" | "error"
 
 export type FormData = {
-  hasConsented: boolean;
-  // Step 1
-  age: string;
-  location: string;
-  institution: string;
-  sex: string;
-  // Step 2
+  hasConsented: boolean
+  age: string
+  location: string
+  institution: string
+  sex: string
   socialMedia: {
-    tiktok: boolean;
-    instagram: boolean;
-    youtube: boolean;
-  };
-  screenTime: string;
-  musicTime: string;
-  // Step 3
-  likert: {
-    influence: number;
-    friends: number;
-    viral: number;
-    listenedViral: number;
-    recommended: number;
-    multitask: number;
-    discovery: number;
-    exclusiveTime: number;
-    timeDecreased: number;
-    annoyedFast: number;
-    recognizePart: number;
-    playlistsImpacted: number;
-  };
-  // Step 4
+    tiktok: boolean
+    instagram: boolean
+    youtube: boolean
+  }
+  screenTime: string
+  musicTime: string
+  likert: Record<string, number>
   musicAnswers: {
-    songId: number;
-    spotifyId: string;
-    heardBefore: string;
-    knowArtist: string;
-    knowAlbum: string;
-    heardComplete: string;
-    stoppedToListen: string;
-    heard3Songs: string;
-    encouragedToListenAlbum: string;
-  }[];
-};
+    songId: number
+    spotifyId: string
+    heardBefore: string
+    knowArtist: string
+    knowAlbum: string
+    heardComplete: string
+    stoppedToListen: string
+    heard3Songs: string
+    encouragedToListenAlbum: string
+  }[]
+}
 
 const initialFormData: FormData = {
   hasConsented: false,
@@ -77,53 +45,116 @@ const initialFormData: FormData = {
   socialMedia: { tiktok: false, instagram: false, youtube: false },
   screenTime: "",
   musicTime: "",
-  likert: {
-    influence: 0,
-    friends: 0,
-    viral: 0,
-    listenedViral: 0,
-    recommended: 0,
-    multitask: 0,
-    discovery: 0,
-    exclusiveTime: 0,
-    timeDecreased: 0,
-    annoyedFast: 0,
-    recognizePart: 0,
-    playlistsImpacted: 0,
-  },
+  likert: {},
   musicAnswers: [],
-};
+}
+
+const LIKERT_KEYS = [
+  "influence",
+  "friends",
+  "viral",
+  "listenedViral",
+  "recommended",
+  "multitask",
+  "discovery",
+  "exclusiveTime",
+  "timeDecreased",
+  "annoyedFast",
+  "recognizePart",
+  "playlistsImpacted",
+] as const
+
+const MUSIC_QUESTION_KEYS = [
+  "heardBefore",
+  "knowArtist",
+  "knowAlbum",
+  "heardComplete",
+  "stoppedToListen",
+  "heard3Songs",
+  "encouragedToListenAlbum",
+] as const
 
 function App() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [currentSongIndex, setCurrentSongIndex] = useState(0);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [currentStep, setCurrentStep] = useState(0)
+  const [currentStimulusIndex, setCurrentStimulusIndex] = useState(0)
+  const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [submissionStatus, setSubmissionStatus] =
+    useState<SubmissionStatus>("idle")
+  const session = useSession()
 
   const updateForm = (data: Partial<FormData>) => {
-    setFormData((prev) => ({ ...prev, ...data }));
-  };
+    setFormData((prev) => ({ ...prev, ...data }))
+  }
 
-  const nextStep = () => setCurrentStep((prev) => prev + 1);
-  const prevStep = () => setCurrentStep((prev) => prev - 1);
+  const nextStep = () => setCurrentStep((prev) => prev + 1)
+  const prevStep = () => setCurrentStep((prev) => prev - 1)
 
-  const handleMusicSubmit = (musicAnswer: FormData["musicAnswers"][0]) => {
-    const newMusicAnswers = [...formData.musicAnswers, musicAnswer];
-    updateForm({ musicAnswers: newMusicAnswers });
+  const handleStartMusicTest = async () => {
+    setSubmissionStatus("uploading")
+    try {
+      const demographics: Record<string, unknown> = {
+        age: formData.age,
+        sex: formData.sex,
+        location: formData.location,
+        institution: formData.institution || undefined,
+        socialMedia: formData.socialMedia,
+        screenTime: formData.screenTime,
+        musicTime: formData.musicTime,
+      }
 
-    if (currentSongIndex < songsToTest.length - 1) {
-      setCurrentSongIndex((prev) => prev + 1);
-    } else {
-      nextStep();
+      await session.initSession(demographics)
+
+      if (session.sessionId) {
+        const likertResponses = LIKERT_KEYS
+          .filter((key) => formData.likert[key] !== undefined)
+          .map((key) => ({
+            questionId: `likert_${key}`,
+            answer: String(formData.likert[key] ?? ""),
+          }))
+
+        if (likertResponses.length > 0) {
+          await session.logResponses(session.sessionId, likertResponses)
+        }
+      }
+
+      setSubmissionStatus("success")
+      setCurrentStimulusIndex(0)
+      nextStep()
+    } catch {
+      setSubmissionStatus("error")
     }
-  };
-  const submitData = async () => {
-    console.log(
-      "DADOS FINAIS DO FORMULÁRIO:",
-      JSON.stringify(formData, null, 2)
-    );
-  };
+  }
 
-  // Renderiza a etapa atual
+  const handlePlay = (trackId: string, orderIndex: number) => {
+    if (session.sessionId) {
+      session.logPlay(session.sessionId, trackId, orderIndex)
+    }
+  }
+
+  const handleMusicSubmit = async (
+    musicAnswer: FormData["musicAnswers"][0],
+  ) => {
+    const newMusicAnswers = [...formData.musicAnswers, musicAnswer]
+    updateForm({ musicAnswers: newMusicAnswers })
+
+    if (session.sessionId) {
+      const responses = MUSIC_QUESTION_KEYS.map((key) => ({
+        questionId: `track_${currentStimulusIndex}_${key}`,
+        answer: musicAnswer[key],
+      }))
+      await session.logResponses(session.sessionId, responses)
+    }
+
+    if (currentStimulusIndex < session.stimuli.length - 1) {
+      setCurrentStimulusIndex((prev) => prev + 1)
+    } else {
+      if (session.sessionId) {
+        await session.finishSession(session.sessionId)
+      }
+      nextStep()
+    }
+  }
+
   const renderStep = () => {
     switch (currentStep) {
       case 0:
@@ -133,7 +164,7 @@ function App() {
             updateForm={updateForm}
             nextStep={nextStep}
           />
-        );
+        )
       case 1:
         return (
           <Step1_UserInfo
@@ -141,7 +172,7 @@ function App() {
             updateForm={updateForm}
             nextStep={nextStep}
           />
-        );
+        )
       case 2:
         return (
           <Step2_MediaUsage
@@ -150,30 +181,44 @@ function App() {
             nextStep={nextStep}
             prevStep={prevStep}
           />
-        );
+        )
       case 3:
         return (
           <Step3_LikertGeneral
             formData={formData}
             updateForm={updateForm}
-            nextStep={nextStep}
+            nextStep={handleStartMusicTest}
             prevStep={prevStep}
+            loading={submissionStatus === "uploading"}
+            error={
+              submissionStatus === "error"
+                ? session.error ?? "Erro ao iniciar sessão"
+                : null
+            }
           />
-        );
+        )
       case 4: {
-        const song = songsToTest[currentSongIndex];
+        if (session.stimuli.length === 0) {
+          return (
+            <div className="text-center text-gray-400 p-8">
+              Nenhum estímulo disponível.
+            </div>
+          )
+        }
+        const stimulus = session.stimuli[currentStimulusIndex]
         return (
           <Step4_MusicPlayer
-            key={song.id}
-            song={song}
+            key={currentStimulusIndex}
+            stimulus={stimulus}
+            totalStimuli={session.stimuli.length}
+            currentIndex={currentStimulusIndex}
             onSubmit={handleMusicSubmit}
-            prevStep={prevStep}
+            onPlay={handlePlay}
           />
-        );
+        )
       }
       case 5:
-        submitData();
-        return <Step5_ThankYou formData={formData} />;
+        return <Step5_ThankYou formData={formData} />
       default:
         return (
           <Step0_Consent
@@ -181,9 +226,9 @@ function App() {
             updateForm={updateForm}
             nextStep={nextStep}
           />
-        );
+        )
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-800 text-white flex items-center justify-center p-4 font-sans">
@@ -191,7 +236,7 @@ function App() {
         {renderStep()}
       </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

@@ -1,11 +1,10 @@
-// src/components/reusable/SpotifyPlayer.tsx
-import { useState } from "react";
+import { useState } from "react"
 
 type Props = {
-  trackId: string;
-};
+  trackId: string
+  onPlay?: (trackId: string) => void
+}
 
-// Ícone de Play (SVG)
 const PlayIcon = () => (
   <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
     <path
@@ -14,17 +13,15 @@ const PlayIcon = () => (
       clipRule="evenodd"
     />
   </svg>
-);
+)
 
-export const SpotifyPlayer = ({ trackId }: Props) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+export const SpotifyPlayer = ({ trackId, onPlay }: Props) => {
+  const [isPlaying, setIsPlaying] = useState(false)
 
   const handlePlay = () => {
-    setIsPlaying(true);
-    // TODO: AQUI VOCÊ DEVE CHAMAR A API DO SPOTIFY
-    // Ex: Iniciar o player do Spotify Web Playback SDK
-    console.log(`Iniciando a reprodução da música: ${trackId}`);
-  };
+    setIsPlaying(true)
+    onPlay?.(trackId)
+  }
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg flex items-center space-x-4 border border-gray-700">
@@ -42,5 +39,5 @@ export const SpotifyPlayer = ({ trackId }: Props) => {
         </p>
       </div>
     </div>
-  );
-};
+  )
+}

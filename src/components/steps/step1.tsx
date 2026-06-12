@@ -6,8 +6,7 @@ type Props = {
   nextStep: () => void;
 };
 
-// Componente de Input reutilizável para este formulário
-const FormInput = ({
+const formInput = ({
   label,
   value,
   onChange,
@@ -15,7 +14,6 @@ const FormInput = ({
   label: string;
   value: string;
   onChange: (val: string) => void;
-  className?: string;
 }) => (
   <div>
     <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -37,11 +35,11 @@ export const Step1_UserInfo = ({ formData, updateForm, nextStep }: Props) => {
     <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
       <h2 className="text-2xl font-bold text-center">Sobre Você</h2>
 
-      <FormInput
-        label="Idade"
-        value={formData.age}
-        onChange={(val) => updateForm({ age: val })}
-      />
+      {formInput({
+        label: "Idade",
+        value: formData.age,
+        onChange: (val) => updateForm({ age: val }),
+      })}
 
       <fieldset>
         <legend className="block text-sm font-medium text-gray-300 mb-1">
@@ -67,16 +65,16 @@ export const Step1_UserInfo = ({ formData, updateForm, nextStep }: Props) => {
         </div>
       </fieldset>
 
-      <FormInput
-        label="Localização (Cidade/Estado)"
-        value={formData.location}
-        onChange={(val) => updateForm({ location: val })}
-      />
-      <FormInput
-        label="Instituição (Opcional)"
-        value={formData.institution}
-        onChange={(val) => updateForm({ institution: val })}
-      />
+      {formInput({
+        label: "Localização (Cidade/Estado)",
+        value: formData.location,
+        onChange: (val) => updateForm({ location: val }),
+      })}
+      {formInput({
+        label: "Instituição (Opcional)",
+        value: formData.institution,
+        onChange: (val) => updateForm({ institution: val }),
+      })}
 
       {/* 4. BOTÕES "VOLTAR" E "PRÓXIMO" ADICIONADOS */}
       <div className="flex justify-between pt-4">

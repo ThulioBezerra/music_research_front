@@ -1,25 +1,21 @@
-// src/components/steps/Step4_MusicPlayer.tsx
-import { useState } from "react";
-import { SpotifyPlayer } from "../reusable/Player";
-import type { FormData } from "../../App";
-import { RadioGroup } from "../reusable/RadioGroup";
-
-type Song = {
-  id: number;
-  spotifyId: string;
-  name: string;
-};
+import { useState } from "react"
+import { SpotifyPlayer } from "../reusable/Player"
+import { RadioGroup } from "../reusable/RadioGroup"
+import type { StimulusItem } from "../../api/types"
+import type { FormData } from "../../App"
 
 type Props = {
-  song: Song;
-  onSubmit: (musicAnswer: FormData["musicAnswers"][0]) => void;
-  prevStep: () => void; // Para voltar ao Step 3
-};
+  stimulus: StimulusItem
+  totalStimuli: number
+  currentIndex: number
+  onSubmit: (musicAnswer: FormData["musicAnswers"][0]) => void
+  onPlay: (trackId: string, orderIndex: number) => void
+}
 
 type MusicAnswerState = Omit<
   FormData["musicAnswers"][0],
   "songId" | "spotifyId"
->;
+>
 
 const initialMusicAnswer: MusicAnswerState = {
   heardBefore: "",
@@ -29,34 +25,49 @@ const initialMusicAnswer: MusicAnswerState = {
   stoppedToListen: "",
   heard3Songs: "",
   encouragedToListenAlbum: "",
-};
+}
 
-const yesNoOptions = ["Sim", "Não", "Não sei"];
+const yesNoOptions = ["Sim", "Não", "Não sei"]
 
-export const Step4_MusicPlayer = ({ song, onSubmit, prevStep }: Props) => {
-  const [answers, setAnswers] = useState<MusicAnswerState>(initialMusicAnswer);
+export const Step4_MusicPlayer = ({
+  stimulus,
+  totalStimuli,
+  currentIndex,
+  onSubmit,
+  onPlay,
+}: Props) => {
+  const [answers, setAnswers] = useState<MusicAnswerState>(initialMusicAnswer)
 
   const handleChange = (key: keyof MusicAnswerState, value: string) => {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
-  };
+    setAnswers((prev) => ({ ...prev, [key]: value }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     onSubmit({
-      songId: song.id,
-      spotifyId: song.spotifyId,
+      songId: currentIndex,
+      spotifyId: stimulus.trackId,
       ...answers,
-    });
-  };
+    })
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <h2 className="text-2xl font-bold text-center">{song.name}</h2>
+      <h2 className="text-2xl font-bold text-center">
+        {stimulus.title ?? "Música"}
+      </h2>
       <p className="text-center text-gray-400">
         Por favor, ouça a música abaixo antes de responder.
+        <br />
+        <span className="text-sm">
+          Música {currentIndex + 1} de {totalStimuli}
+        </span>
       </p>
 
-      <SpotifyPlayer trackId={song.spotifyId} />
+      <SpotifyPlayer
+        trackId={stimulus.trackId}
+        onPlay={(trackId) => onPlay(trackId, currentIndex)}
+      />
 
       <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
         <RadioGroup
@@ -111,10 +122,8 @@ export const Step4_MusicPlayer = ({ song, onSubmit, prevStep }: Props) => {
       </div>
 
       <div className="flex justify-between pt-4">
-        {/* O botão "Voltar" aqui te levaria para o Step 3 (Likert) */}
         <button
           type="button"
-          onClick={prevStep}
           className="bg-gray-600 text-white font-bold py-2 px-6 rounded-md hover:bg-gray-500 transition-all"
         >
           Voltar (Percepções)
@@ -123,9 +132,9 @@ export const Step4_MusicPlayer = ({ song, onSubmit, prevStep }: Props) => {
           type="submit"
           className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-md hover:bg-indigo-700 transition-all"
         >
-          Próxima Música
+          {currentIndex < totalStimuli - 1 ? "Próxima Música" : "Finalizar"}
         </button>
       </div>
     </form>
-  );
-};
+  )
+}
